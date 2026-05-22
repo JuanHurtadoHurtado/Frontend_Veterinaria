@@ -154,3 +154,19 @@
 .page.card .text-sm {
   color: rgba(15, 47, 58, 0.72);
 }
+
+/* Hide native browser password reveal icons where possible and ensure our custom eye is on top */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+input[type="password"]::-webkit-password-toggle-button,
+input[type="password"]::-webkit-textfield-decoration-button,
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
+input[type="password"] {
+  -webkit-appearance: none;
+  appearance: none;
+}

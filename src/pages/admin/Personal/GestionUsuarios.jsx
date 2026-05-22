@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -28,6 +28,7 @@ export default function GestionUsuarios() {
   const [openDetailDialog, setOpenDetailDialog] = useState(false)
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState(null)
+  const [hoveredPasswordId, setHoveredPasswordId] = useState(null)
   const [formData, setFormData] = useState({
     nombres: '',
     apellidos: '',
@@ -38,6 +39,21 @@ export default function GestionUsuarios() {
     correo: '',
     rol: 'usuario',
   })
+
+  const generarContrasena = (nombres = '', apellidos = '', documentoNumero = '') => {
+    // normalizar y limpiar acentos
+    const strip = (s) => (s || '').normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    const nombresClean = strip(nombres).trim()
+    const apellidosClean = strip(apellidos).trim()
+    const doc = String(documentoNumero || '')
+
+    const primeraInicial = nombresClean.split(' ')[0]?.charAt(0)?.toLowerCase() || ''
+    const apellidosParts = apellidosClean.split(' ').filter(Boolean)
+    const primerApellido = (apellidosParts[0] || '').toLowerCase()
+    const segundaInicial = (apellidosParts[1]?.charAt(0) || apellidosParts[0]?.charAt(0) || '').toLowerCase()
+
+    return `${primeraInicial}${primerApellido}${segundaInicial}${doc}`
+  }
 
   const handleAddUsuario = () => {
     setSelectedUsuario(null)
@@ -87,13 +103,16 @@ export default function GestionUsuarios() {
       return
     }
 
+    const rolNormalizado = String(formData.rol || '').trim().toLowerCase()
+
     if (selectedUsuario) {
-      const updated = usuarios.map(u => u.id === selectedUsuario.id ? { ...u, ...formData } : u)
+      const updated = usuarios.map(u => u.id === selectedUsuario.id ? { ...u, ...formData, rol: rolNormalizado, email: formData.correo } : u)
       setUsuariosState(updated)
       setUsuarios(updated)
       pushLog({ usuario: formData.correo, accion: 'Editó usuario', detalle: `Actualizó a ${formData.correo}` })
     } else {
-      const nuevo = { id: Math.max(...usuarios.map(u => u.id), 0) + 1, ...formData, estado: 'activo' }
+      const generatedPassword = generarContrasena(formData.nombres, formData.apellidos, formData.documentoNumero)
+      const nuevo = { id: Math.max(...usuarios.map(u => u.id), 0) + 1, ...formData, rol: rolNormalizado, estado: 'activo', password: generatedPassword, email: formData.correo }
       const updated = [...usuarios, nuevo]
       setUsuariosState(updated)
       setUsuarios(updated)
@@ -315,6 +334,7 @@ export default function GestionUsuarios() {
             <TableRow>
               <TableHead>Nombres completos</TableHead>
               <TableHead>Correo</TableHead>
+              <TableHead>Contraseña</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -325,6 +345,26 @@ export default function GestionUsuarios() {
               <TableRow key={usuario.id}>
                 <TableCell className="font-medium text-sm">{getDisplayName(usuario)}</TableCell>
                 <TableCell className="font-mono text-sm">{usuario.correo}</TableCell>
+                <TableCell className="font-mono text-sm">
+                  <div
+                    onMouseEnter={() => setHoveredPasswordId(usuario.id)}
+                    onMouseLeave={() => setHoveredPasswordId(null)}
+                    className="inline-block w-full text-left"
+                  >
+                    <span
+                      style={{
+                        filter: hoveredPasswordId === usuario.id ? 'none' : 'blur(6px)',
+                        WebkitFilter: hoveredPasswordId === usuario.id ? 'none' : 'blur(6px)',
+                        transition: 'filter .12s ease-in-out',
+                        WebkitTransition: '-webkit-filter .12s ease-in-out',
+                        display: 'inline-block',
+                      }}
+                      title={usuario.password ? 'Mostrar contraseña' : 'Sin contraseña'}
+                    >
+                      {usuario.password || '-'}
+                    </span>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${getRolColor(usuario.rol)}`}>
                     {usuario.rol}

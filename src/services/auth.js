@@ -8,6 +8,8 @@ import { storageEvents } from '@/lib/storage'
 const USUARIOS_KEY = 'usuarios'
 const SESION_ACTUAL_KEY = 'sesionActual'
 
+const normalizarRol = (rol) => String(rol || '').trim().toLowerCase()
+
 export const AUTH_SERVICE = {
   /**
    * Inicializa el administrador semilla si no existe ningún usuario
@@ -55,11 +57,18 @@ export const AUTH_SERVICE = {
       return { exitoso: false, error: 'Correo o contraseña incorrectos.' }
     }
 
+    const rolNormalizado = normalizarRol(usuario.rol)
+
     const sesion = {
       id: usuario.id,
       email: usuario.email,
-      rol: usuario.rol,
+      rol: rolNormalizado,
       fechaLogin: new Date().toISOString(),
+    }
+
+    if (usuario.rol !== rolNormalizado) {
+      usuario.rol = rolNormalizado
+      localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios))
     }
 
     localStorage.setItem(SESION_ACTUAL_KEY, JSON.stringify(sesion))
@@ -68,10 +77,21 @@ export const AUTH_SERVICE = {
   },
 
   /**
-   * Registra un nuevo usuario (solo rol "usuario" o "veterinario")
+   * Registra un nuevo usuario.
+   * Acepta una firma vieja (email, password, rol) o un objeto con los datos completos.
+   * Desde la vista pública solo se permite rol "usuario".
    */
-  registro: (email, password, rol = 'usuario') => {
+  registro: (payloadOrEmail, passwordArg, rolArg = 'usuario') => {
     const usuarios = AUTH_SERVICE.obtenerUsuarios()
+
+    const payload =
+      typeof payloadOrEmail === 'object' && payloadOrEmail !== null
+        ? payloadOrEmail
+        : { email: payloadOrEmail, password: passwordArg, rol: rolArg }
+
+    const email = String(payload.email || '').trim()
+    const password = String(payload.password || '')
+    const rolNormalizado = normalizarRol(payload.rol || 'usuario')
 
     // Validar que el email no esté registrado
     if (usuarios.some((u) => u.email === email)) {
@@ -79,12 +99,12 @@ export const AUTH_SERVICE = {
     }
 
     // Validar que no intente registrarse como administrador
-    if (rol === 'administrador') {
+    if (rolNormalizado === 'administrador') {
       return { exitoso: false, error: 'Ya existe un administrador. Solo puede haber uno.' }
     }
 
     // Validar rol permitido
-    if (!['usuario', 'veterinario'].includes(rol)) {
+    if (!['usuario', 'veterinario'].includes(rolNormalizado)) {
       return { exitoso: false, error: 'Rol no válido.' }
     }
 
@@ -92,7 +112,12 @@ export const AUTH_SERVICE = {
       id: Date.now(),
       email,
       password,
-      rol,
+      rol: rolNormalizado,
+      nombres: payload.nombres || '',
+      apellidos: payload.apellidos || '',
+      documentoTipo: payload.documentoTipo || '',
+      documentoNumero: payload.documentoNumero || '',
+      telefono: payload.telefono || '',
       fechaRegistro: new Date().toISOString(),
     }
 
