@@ -4,20 +4,23 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { MoreHorizontal, Trash2, Edit2, Plus } from 'lucide-react'
+import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon } from 'lucide-react'
 import { loadJSON, setUsuarios, pushLog } from '@/lib/storage'
+import { format } from 'date-fns'
 
-const ROLES = ['administrador', 'veterinario', 'recepcionista', 'usuario']
+const ROLES = ['Administrador', 'Veterinario', 'Recepcionista', 'Usuario']
 
 export default function GestionUsuarios() {
   const initialUsuarios = [
-    { id: 1, email: 'admin@vet.com', nombre: 'Admin', rol: 'administrador', estado: 'activo' },
-    { id: 2, email: 'vet1@vet.com', nombre: 'Dr. García', rol: 'veterinario', estado: 'activo' },
-    { id: 3, email: 'recep@vet.com', nombre: 'María', rol: 'recepcionista', estado: 'activo' },
+    { id: 1, nombres: 'Admin', apellidos: 'Usuario', documentoTipo: 'DNI', documentoNumero: '00000000', fechaNacimiento: '1980-01-01', telefono: '', correo: 'admin@vet.com', rol: 'administrador', estado: 'activo' },
+    { id: 2, nombres: 'Dr. García', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000001', fechaNacimiento: '1985-05-12', telefono: '', correo: 'vet1@vet.com', rol: 'veterinario', estado: 'activo' },
+    { id: 3, nombres: 'María', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000002', fechaNacimiento: '1990-03-03', telefono: '', correo: 'recep@vet.com', rol: 'recepcionista', estado: 'activo' },
   ]
 
   const [usuarios, setUsuariosState] = useState(() => loadJSON('usuarios', initialUsuarios))
@@ -25,34 +28,76 @@ export default function GestionUsuarios() {
   const [openDialog, setOpenDialog] = useState(false)
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState(null)
-  const [formData, setFormData] = useState({ email: '', nombre: '', rol: 'usuario' })
+  const [formData, setFormData] = useState({
+    nombres: '',
+    apellidos: '',
+    documentoTipo: 'DNI',
+    documentoNumero: '',
+    fechaNacimiento: '',
+    telefono: '',
+    correo: '',
+    rol: 'usuario',
+  })
 
   const handleAddUsuario = () => {
     setSelectedUsuario(null)
-    setFormData({ email: '', nombre: '', rol: 'usuario' })
+    setFormData({
+      nombres: '',
+      apellidos: '',
+      documentoTipo: 'DNI',
+      documentoNumero: '',
+      fechaNacimiento: '',
+      telefono: '',
+      correo: '',
+      rol: 'usuario',
+    })
     setOpenDialog(true)
   }
 
   const handleEditUsuario = (usuario) => {
     setSelectedUsuario(usuario)
-    setFormData({ email: usuario.email, nombre: usuario.nombre, rol: usuario.rol })
+    setFormData({
+      nombres: usuario.nombres || usuario.nombre || '',
+      apellidos: usuario.apellidos || '',
+      documentoTipo: usuario.documentoTipo || 'DNI',
+      documentoNumero: usuario.documentoNumero || '',
+      fechaNacimiento: usuario.fechaNacimiento || '',
+      telefono: usuario.telefono || '',
+      correo: usuario.correo || usuario.email || '',
+      rol: usuario.rol,
+    })
     setOpenDialog(true)
   }
 
   const handleSaveUsuario = () => {
-    if (!formData.email || !formData.nombre) return
+    // Validaciones básicas
+    if (!formData.nombres || !formData.apellidos || !formData.correo) {
+      window.alert('Por favor complete nombres, apellidos y correo.')
+      return
+    }
+
+    const tipo = formData.documentoTipo
+    const num = String(formData.documentoNumero || '')
+    if (tipo === 'DNI' && num.length !== 8) {
+      window.alert('El número de documento para DNI debe tener 8 caracteres.')
+      return
+    }
+    if (tipo === 'CE' && num.length !== 9) {
+      window.alert('El número de documento para CE debe tener 9 caracteres.')
+      return
+    }
 
     if (selectedUsuario) {
       const updated = usuarios.map(u => u.id === selectedUsuario.id ? { ...u, ...formData } : u)
       setUsuariosState(updated)
       setUsuarios(updated)
-      pushLog({ usuario: formData.email, accion: 'Editó usuario', detalle: `Actualizó a ${formData.email}` })
+      pushLog({ usuario: formData.correo, accion: 'Editó usuario', detalle: `Actualizó a ${formData.correo}` })
     } else {
       const nuevo = { id: Math.max(...usuarios.map(u => u.id), 0) + 1, ...formData, estado: 'activo' }
       const updated = [...usuarios, nuevo]
       setUsuariosState(updated)
       setUsuarios(updated)
-      pushLog({ usuario: formData.email, accion: 'Creó usuario', detalle: `Creó a ${formData.email}` })
+      pushLog({ usuario: formData.correo, accion: 'Creó usuario', detalle: `Creó a ${formData.correo}` })
     }
     setOpenDialog(false)
   }
@@ -61,7 +106,7 @@ export default function GestionUsuarios() {
     const updated = usuarios.filter(u => u.id !== selectedUsuario.id)
     setUsuariosState(updated)
     setUsuarios(updated)
-    pushLog({ usuario: selectedUsuario?.email, accion: 'Eliminó usuario', detalle: `Eliminó a ${selectedUsuario?.email}` })
+    pushLog({ usuario: selectedUsuario?.correo || selectedUsuario?.email, accion: 'Eliminó usuario', detalle: `Eliminó a ${selectedUsuario?.correo || selectedUsuario?.email}` })
     setOpenDeleteAlert(false)
   }
 
@@ -89,37 +134,134 @@ export default function GestionUsuarios() {
               <Plus size={16} /> Nuevo Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
             <DialogHeader>
-              <DialogTitle>{selectedUsuario ? 'Editar' : 'Nuevo'} Usuario</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-2xl text-[#0f2f3a]">{selectedUsuario ? 'Editar' : 'Nuevo'} Usuario</DialogTitle>
+              <DialogDescription className="text-[#0f2f3a]/70">
                 {selectedUsuario ? 'Actualiza los datos del usuario' : 'Crea un nuevo usuario en el sistema'}
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="usuario@ejemplo.com"
-                />
+            <div className="space-y-5 pt-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nombres" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Nombres
+                  </Label>
+                  <Input
+                    id="nombres"
+                    value={formData.nombres}
+                    onChange={(e) => setFormData({ ...formData, nombres: e.target.value })}
+                    placeholder="Juan"
+                    className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apellidos" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Apellidos
+                  </Label>
+                  <Input
+                    id="apellidos"
+                    value={formData.apellidos}
+                    onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
+                    placeholder="Pérez"
+                    className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="nombre">Nombre</Label>
-                <Input
-                  id="nombre"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  placeholder="Juan García"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-[160px_minmax(0,1fr)] gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="documentoTipo" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Tipo de documento
+                  </Label>
+                  <Select value={formData.documentoTipo} onValueChange={(value) => setFormData({ ...formData, documentoTipo: value })}>
+                    <SelectTrigger id="documentoTipo" className="border-[#0ebccc]/25 bg-white text-left">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="DNI">DNI</SelectItem>
+                      <SelectItem value="CE">CE</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="documentoNumero" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Número de documento
+                  </Label>
+                  <Input
+                    id="documentoNumero"
+                    value={formData.documentoNumero}
+                    onChange={(e) => setFormData({ ...formData, documentoNumero: e.target.value.replace(/[^0-9]/g, '').slice(0, formData.documentoTipo === 'DNI' ? 8 : 9) })}
+                    maxLength={formData.documentoTipo === 'DNI' ? 8 : 9}
+                    placeholder={formData.documentoTipo === 'DNI' ? '8 dígitos' : '9 dígitos'}
+                    className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
+                  />
+                </div>
               </div>
-              <div>
-                <Label htmlFor="rol">Rol</Label>
+
+              <div className="space-y-2">
+                <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Fecha de nacimiento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full justify-start rounded-xl border-[#0ebccc]/25 bg-white text-left font-normal text-[#0f2f3a]"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-[#0ebccc]" />
+                      {formData.fechaNacimiento ? format(new Date(`${formData.fechaNacimiento}T00:00:00`), 'dd/MM/yyyy') : 'Selecciona una fecha'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.fechaNacimiento ? new Date(`${formData.fechaNacimiento}T00:00:00`) : undefined}
+                      onSelect={(date) =>
+                        setFormData({
+                          ...formData,
+                          fechaNacimiento: date ? format(date, 'yyyy-MM-dd') : '',
+                        })
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="telefono" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Teléfono
+                  </Label>
+                  <Input
+                    id="telefono"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value.replace(/\D/g, '').slice(0, 9) })}
+                    placeholder="9XXXXXXXX"
+                    maxLength={9}
+                    className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="correo" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                    Correo personal
+                  </Label>
+                  <Input
+                    id="correo"
+                    type="email"
+                    value={formData.correo}
+                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    placeholder="correo@ejemplo.com"
+                    className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="rol" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                  Rol
+                </Label>
                 <Select value={formData.rol} onValueChange={(value) => setFormData({ ...formData, rol: value })}>
-                  <SelectTrigger id="rol">
+                  <SelectTrigger id="rol" className="border-[#0ebccc]/25 bg-white text-left">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -129,7 +271,8 @@ export default function GestionUsuarios() {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleSaveUsuario} className="w-full">
+
+              <Button onClick={handleSaveUsuario} className="w-full h-11 rounded-xl bg-[#0ebccc] text-white hover:bg-[#0aa7b6]">
                 {selectedUsuario ? 'Actualizar' : 'Crear'} Usuario
               </Button>
             </div>
@@ -141,8 +284,12 @@ export default function GestionUsuarios() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Nombre</TableHead>
+              <TableHead>Nombres</TableHead>
+              <TableHead>Apellidos</TableHead>
+              <TableHead>Documento</TableHead>
+              <TableHead>F. Nacimiento</TableHead>
+              <TableHead>Teléfono</TableHead>
+              <TableHead>Correo</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="text-right">Acciones</TableHead>
@@ -151,8 +298,12 @@ export default function GestionUsuarios() {
           <TableBody>
             {usuarios.map(usuario => (
               <TableRow key={usuario.id}>
-                <TableCell className="font-mono text-sm">{usuario.email}</TableCell>
-                <TableCell>{usuario.nombre}</TableCell>
+                <TableCell className="font-mono text-sm">{usuario.nombres}</TableCell>
+                <TableCell>{usuario.apellidos}</TableCell>
+                <TableCell>{usuario.documentoTipo} - {usuario.documentoNumero}</TableCell>
+                <TableCell>{usuario.fechaNacimiento || '-'}</TableCell>
+                <TableCell>{usuario.telefono || '-'}</TableCell>
+                <TableCell className="font-mono text-sm">{usuario.correo}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${getRolColor(usuario.rol)}`}>
                     {usuario.rol}
@@ -197,7 +348,7 @@ export default function GestionUsuarios() {
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar usuario</AlertDialogTitle>
             <AlertDialogDescription>
-              ¿Estás seguro de que quieres eliminar a <strong>{selectedUsuario?.nombre}</strong>? Esta acción no se puede deshacer.
+              ¿Estás seguro de que quieres eliminar a <strong>{selectedUsuario ? `${selectedUsuario.nombres} ${selectedUsuario.apellidos}` : ''}</strong>? Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex gap-2 justify-end">
