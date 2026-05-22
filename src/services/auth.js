@@ -3,6 +3,8 @@
  * Gestiona usuarios, sesiones y validaciones
  */
 
+import { storageEvents } from '@/lib/storage'
+
 const USUARIOS_KEY = 'usuarios'
 const SESION_ACTUAL_KEY = 'sesionActual'
 
@@ -61,6 +63,7 @@ export const AUTH_SERVICE = {
     }
 
     localStorage.setItem(SESION_ACTUAL_KEY, JSON.stringify(sesion))
+    storageEvents.dispatchEvent(new CustomEvent('sesion', { detail: sesion }))
     return { exitoso: true, usuario: sesion }
   },
 
@@ -116,6 +119,7 @@ export const AUTH_SERVICE = {
    */
   cerrarSesion: () => {
     localStorage.removeItem(SESION_ACTUAL_KEY)
+    storageEvents.dispatchEvent(new CustomEvent('sesion', { detail: null }))
     return { exitoso: true }
   },
 

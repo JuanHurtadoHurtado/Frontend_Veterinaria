@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import './App.css'
 import { AUTH_SERVICE } from './services/auth'
-import { Button } from './components/ui/button'
+import { storageEvents } from './lib/storage'
 import Sidebar from './components/ui/sidebar'
-import Administrador from './pages/Administrador'
 import AdminPersonal from './pages/admin/Personal'
 import AdminClinica from './pages/admin/Clinica'
 import AdminVeterinarios from './pages/admin/Veterinarios'
+import Mascotas from './pages/Mascotas'
 import GestionUsuarios from './pages/admin/Personal/GestionUsuarios'
 import ControlAcceso from './pages/admin/Personal/ControlAcceso'
 import RegistroActividades from './pages/admin/Personal/RegistroActividades'
@@ -18,56 +18,38 @@ import Login from './pages/Login'
 import Usuario from './pages/Usuario'
 import Registro from './pages/Registro'
 
-function Header({ sesion, onLogout }) {
-  const navigate = useNavigate()
-
-  if (!sesion) return null
-
-  const handleLogout = () => {
-    AUTH_SERVICE.cerrarSesion()
-    onLogout()
-    navigate('/login')
+function ProtectedRoute({ element, requiredRole, requiredRoles, sesion }) {
+  const HOME_BY_ROLE = {
+    administrador: '/administrador/personal/usuarios',
+    recepcionista: '/recepcionista/mascotas',
+    veterinario: '/veterinario',
+    usuario: '/usuario',
   }
+  const allowedRoles = requiredRoles || (requiredRole ? [requiredRole] : null)
 
-  return (
-    <header className="app-header">
-      <div className="brand">
-        Veterinaria {sesion.rol === 'administrador' && '(Admin)'} {sesion.rol === 'veterinario' && '(Vet)'}
-      </div>
-      <div className="nav">
-        {sesion.rol === 'administrador' && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/administrador')}>
-            Admin
-          </Button>
-        )}
-        {sesion.rol === 'usuario' && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/usuario')}>
-            Usuario
-          </Button>
-        )}
-        {sesion.rol === 'veterinario' && (
-          <Button variant="ghost" size="sm" onClick={() => navigate('/veterinario')}>
-            Veterinario
-          </Button>
-        )}
-        <Button variant="outline" size="sm" onClick={handleLogout}>
-          Cerrar sesión
-        </Button>
-      </div>
-    </header>
-  )
-}
-
-function ProtectedRoute({ element, requiredRole, sesion }) {
   if (!sesion) {
     return <Navigate to="/login" replace />
   }
 
-  if (requiredRole && sesion.rol !== requiredRole) {
-    return <Navigate to={sesion.rol === 'administrador' ? '/administrador' : '/usuario'} replace />
+  if (allowedRoles && !allowedRoles.includes(sesion.rol)) {
+    return <Navigate to={HOME_BY_ROLE[sesion.rol] || '/login'} replace />
   }
 
   return element
+}
+
+function AppLayout({ sesion, adminCreado, children }) {
+  const location = useLocation()
+  const showSidebar = Boolean(sesion) && !['/login', '/registro'].includes(location.pathname)
+
+  return (
+    <div className={`app-shell ${adminCreado ? 'pt-20' : ''}`}>
+      <div className="flex min-h-[calc(100vh-4rem)]">
+        {showSidebar && <Sidebar sesion={sesion} />}
+        <main className="app-main flex-1">{children}</main>
+      </div>
+    </div>
+  )
 }
 
 function App() {
@@ -86,15 +68,21 @@ function App() {
       setSesion(sesionActual)
       setLoading(false)
     })
+
+    const handleSesionChange = (event) => {
+      setSesion(event.detail)
+    }
+
+    storageEvents.addEventListener('sesion', handleSesionChange)
+
+    return () => {
+      storageEvents.removeEventListener('sesion', handleSesionChange)
+    }
   }, [])
 
   const handleLogin = () => {
     const sesionActual = AUTH_SERVICE.obtenerSesionActual()
     setSesion(sesionActual)
-  }
-
-  const handleLogout = () => {
-    setSesion(null)
   }
 
   if (loading) {
@@ -114,20 +102,19 @@ function App() {
           ✓ Admin semilla creado: admin@healthypets.com / admin123
         </div>
       )}
-      <div className={`app-shell ${adminCreado ? 'pt-20' : ''}`}>
-        <Header sesion={sesion} onLogout={handleLogout} />
-
-        <div className="flex">
-          <Sidebar sesion={sesion} />
-          <main className="app-main flex-1">
-            <Routes>
+      <AppLayout sesion={sesion} adminCreado={adminCreado}>
+        <Routes>
             <Route path="/login" element={<Login onLoginSuccess={handleLogin} />} />
             <Route path="/registro" element={<Registro />} />
             <Route
               path="/administrador"
+              element={<Navigate to="/administrador/personal/usuarios" replace />}
+            />
+            <Route
+              path="/administrador/mascotas"
               element={
                 <ProtectedRoute
-                  element={<Administrador sesion={sesion} />}
+                  element={<Mascotas sesion={sesion} />}
                   requiredRole="administrador"
                   sesion={sesion}
                 />
@@ -213,6 +200,20 @@ function App() {
                 />
               }
             />
+            <Route
+              path="/recepcionista"
+              element={<Navigate to="/recepcionista/mascotas" replace />}
+            />
+            <Route
+              path="/recepcionista/mascotas"
+              element={
+                <ProtectedRoute
+                  element={<Mascotas sesion={sesion} />}
+                  requiredRoles={['administrador', 'recepcionista']}
+                  sesion={sesion}
+                />
+              }
+            />
             
             <Route
               path="/veterinario"
@@ -236,15 +237,27 @@ function App() {
             />
             <Route
               path="/"
-              element={sesion ? <Navigate to={sesion.rol === 'administrador' ? '/administrador' : sesion.rol === 'veterinario' ? '/veterinario' : '/usuario'} replace /> : <Navigate to="/login" replace />}
+              element={
+                sesion ? (
+                  <Navigate
+                    to={
+                      {
+                        administrador: '/administrador/personal/usuarios',
+                        recepcionista: '/recepcionista/mascotas',
+                        veterinario: '/veterinario',
+                        usuario: '/usuario',
+                      }[sesion.rol] || '/login'
+                    }
+                    replace
+                  />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
+              }
             />
             <Route path="*" element={<div>404 — Página no encontrada</div>} />
           </Routes>
-          </main>
-        </div>
-
-        <footer className="app-footer">© {new Date().getFullYear()} Veterinaria</footer>
-      </div>
+      </AppLayout>
     </BrowserRouter>
   )
 }

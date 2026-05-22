@@ -35,11 +35,17 @@ export function setPermisos(permisos) {
   storageEvents.dispatchEvent(new CustomEvent('permisos', { detail: permisos }))
 }
 
+export function setMascotas(mascotas) {
+  saveJSON('mascotas', mascotas)
+  storageEvents.dispatchEvent(new CustomEvent('mascotas', { detail: mascotas }))
+}
+
 export default {
   loadJSON,
   saveJSON,
   pushLog,
   setUsuarios,
   setPermisos,
+  setMascotas,
   storageEvents,
 }

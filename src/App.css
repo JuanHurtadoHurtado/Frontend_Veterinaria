@@ -116,13 +116,6 @@
   font-weight: 600;
   box-shadow: 0 12px 28px rgba(235, 0, 143, 0.22);
 }
-.app-footer {
-  padding: 1rem 1.5rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: rgba(15, 47, 58, 0.72);
-}
-
 /* Estilos adicionales para navegación */
 .nav button {
   transition: all 0.2s ease;

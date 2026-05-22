@@ -7,10 +7,13 @@ function Table({
   ...props
 }) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div
+      data-slot="table-container"
+      className="relative w-full overflow-x-auto rounded-3xl border border-[#0ebccc]/15 bg-white/95 shadow-[0_24px_80px_rgba(14,188,204,0.10)]"
+    >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom border-separate border-spacing-0 text-sm", className)}
         {...props} />
     </div>
   );
@@ -23,7 +26,7 @@ function TableHeader({
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
+      className={cn("sticky top-0 z-10 bg-[#fefefe]/95 backdrop-blur-sm [&_tr]:border-b", className)}
       {...props} />
   );
 }
@@ -60,7 +63,7 @@ function TableRow({
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-[#0ebccc]/10 transition-colors hover:bg-[#fcd8fa]/25 has-aria-expanded:bg-[#fcd8fa]/25 data-[state=selected]:bg-[#fcd8fa]/35",
         className
       )}
       {...props} />
@@ -75,7 +78,7 @@ function TableHead({
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-2 text-left align-middle font-medium whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0",
+        "h-12 px-4 text-left align-middle text-xs font-semibold uppercase tracking-[0.12em] text-[#0f2f3a]/70 [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props} />
@@ -90,7 +93,7 @@ function TableCell({
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        "px-4 py-4 align-middle whitespace-nowrap text-[#0f2f3a] [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props} />
@@ -104,7 +107,7 @@ function TableCaption({
   return (
     <caption
       data-slot="table-caption"
-      className={cn("mt-4 text-sm text-muted-foreground", className)}
+      className={cn("mt-4 px-2 text-sm text-[#0f2f3a]/70", className)}
       {...props} />
   );
 }

@@ -4,23 +4,46 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { storageEvents, loadJSON, saveJSON, pushLog } from '@/lib/storage'
 import { Filter, MoreHorizontal, Plus, Search, Stethoscope, UserCircle2, MapPin, ShieldCheck } from 'lucide-react'
 
-const SPECIALTIES = [
-  'Medicina interna',
-  'Cirugía',
-  'Dermatología',
-  'Traumatología',
-  'Odontología',
-  'Cardiología',
-  'Oftalmología',
-  'Etología',
-]
+const GROUPED_SPECIALTIES = {
+  'Medicina clínica': [
+    'Medicina general',
+    'Dermatología',
+    'Cardiología',
+    'Neurología',
+    'Nutrición',
+    'Etología',
+  ],
+  'Cirugía': [
+    'Cirugía básica',
+    'Esterilizaciones',
+    'Traumatología',
+    'Ortopedia',
+    'Neurocirugía',
+  ],
+  'Diagnóstico': [
+    'Laboratorio clínico',
+    'Radiografías',
+    'Ecografías',
+    'Patología',
+    'Análisis de sangre',
+  ],
+  'Emergencias y cuidados intensivos': [
+    'Primeros auxilios',
+    'Trauma',
+    'Shock',
+    'Hospitalización',
+    'UCI veterinaria',
+  ],
+}
 
 const BRANCHES = ['Sucursal norte', 'Sucursal sur']
 const STATUS_OPTIONS = ['activo', 'inactivo']
@@ -51,7 +74,7 @@ export default function Veterinarios({ sesion }) {
   const [selectedVetId, setSelectedVetId] = useState(null)
   const [formData, setFormData] = useState({
     usuarioId: '',
-    especialidad: '',
+    especialidades: [],
     sucursal: 'Sucursal norte',
     fotoUrl: '',
   })
@@ -66,6 +89,21 @@ export default function Veterinarios({ sesion }) {
     return () => {
       storageEvents.removeEventListener('usuarios', syncUsers)
       storageEvents.removeEventListener('veterinarios', syncVets)
+    }
+  }, [])
+
+  // Migrate older single-string "especialidad" -> array "especialidades"
+  useEffect(() => {
+    const raw = loadJSON('veterinarios', [])
+    let migrated = false
+    const normalized = raw.map((vet) => {
+      if (vet.especialidades) return vet
+      migrated = migrated || Boolean(vet.especialidad)
+      return { ...vet, especialidades: vet.especialidad ? [vet.especialidad] : [] }
+    })
+    if (migrated) {
+      setVeterinarios(normalized)
+      saveJSON('veterinarios', normalized)
     }
   }, [])
 
@@ -93,10 +131,12 @@ export default function Veterinarios({ sesion }) {
     }, {})
   }, [veterinarianUsers])
 
+  const flatSpecialties = useMemo(() => Object.values(GROUPED_SPECIALTIES).flat(), [])
+
   const specialtiesAvailable = useMemo(() => {
-    const created = veterinarios.map((vet) => vet.especialidad).filter(Boolean)
-    return Array.from(new Set([...SPECIALTIES, ...created]))
-  }, [veterinarios])
+    const created = veterinarios.flatMap((vet) => vet.especialidades || [])
+    return Array.from(new Set([...flatSpecialties, ...created]))
+  }, [veterinarios, flatSpecialties])
 
   const vetCards = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -114,12 +154,13 @@ export default function Veterinarios({ sesion }) {
       .filter((vet) => {
         const matchesSearch =
           !query ||
-          [vet.nombreCompleto, vet.especialidad, vet.sucursal, vet.estado]
+          [vet.nombreCompleto, (vet.especialidades || []).join(' '), vet.sucursal, vet.estado]
             .join(' ')
             .toLowerCase()
             .includes(query)
 
-        const matchesSpecialty = specialtyFilter === 'all' || vet.especialidad === specialtyFilter
+        const matchesSpecialty =
+          specialtyFilter === 'all' || (vet.especialidades || []).includes(specialtyFilter)
         const matchesStatus = statusFilter === 'all' || vet.estado === statusFilter
         const matchesBranch = branchFilter === 'all' || vet.sucursal === branchFilter
 
@@ -131,7 +172,7 @@ export default function Veterinarios({ sesion }) {
     setSelectedVetId(null)
     setFormData({
       usuarioId: '',
-      especialidad: '',
+      especialidades: [],
       sucursal: 'Sucursal norte',
       fotoUrl: '',
     })
@@ -146,7 +187,7 @@ export default function Veterinarios({ sesion }) {
     setSelectedVetId(vet.id)
     setFormData({
       usuarioId: vet.usuarioId ? String(vet.usuarioId) : '',
-      especialidad: vet.especialidad || '',
+      especialidades: vet.especialidades || [],
       sucursal: vet.sucursal || 'Sucursal norte',
       fotoUrl: vet.fotoUrl || '',
     })
@@ -155,7 +196,7 @@ export default function Veterinarios({ sesion }) {
 
   const handleSaveVet = () => {
     const selectedUser = veterinarianUsers.find((user) => String(user.id) === String(formData.usuarioId))
-    if (!selectedUser || !formData.especialidad || !formData.sucursal) return
+    if (!selectedUser || !(formData.especialidades && formData.especialidades.length) || !formData.sucursal) return
 
     const baseRecord = {
       usuarioId: selectedUser.id,
@@ -166,7 +207,7 @@ export default function Veterinarios({ sesion }) {
       telefono: selectedUser.telefono || '',
       correo: selectedUser.correo || selectedUser.email || '',
       rol: selectedUser.rol || 'veterinario',
-      especialidad: formData.especialidad,
+      especialidades: formData.especialidades,
       sucursal: formData.sucursal,
       estado: selectedVetId ? veterinarios.find((vet) => vet.id === selectedVetId)?.estado || 'activo' : 'activo',
       fotoUrl: formData.fotoUrl || '',
@@ -343,18 +384,63 @@ export default function Veterinarios({ sesion }) {
             </div>
             <div className="space-y-2">
               <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Especialidad</Label>
-              <Select value={formData.especialidad} onValueChange={(value) => setFormData({ ...formData, especialidad: value })}>
-                <SelectTrigger className="h-11 rounded-xl border-[#0ebccc]/25 bg-white text-left">
-                  <SelectValue placeholder="Selecciona especialidad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {specialtiesAvailable.map((specialty) => (
-                    <SelectItem key={specialty} value={specialty}>
-                      {specialty}
-                    </SelectItem>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="h-11 w-full rounded-xl border border-[#0ebccc]/25 bg-white text-left px-3 flex items-center text-sm">
+                    {formData.especialidades && formData.especialidades.length > 0
+                      ? (formData.especialidades || []).join(', ')
+                      : 'Selecciona especialidades'}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="max-h-72 overflow-auto">
+                  {Object.entries(GROUPED_SPECIALTIES).map(([group, items]) => (
+                    <div key={group} className="mb-2">
+                      <div className="px-2 py-1 text-xs font-medium text-[#0ebccc]">{group}</div>
+                      <div className="flex flex-col gap-1 px-2">
+                        {items.map((s) => (
+                          <label key={s} className="inline-flex items-center gap-2">
+                            <Checkbox
+                              checked={(formData.especialidades || []).includes(s)}
+                              onCheckedChange={(checked) => {
+                                const curr = Array.isArray(formData.especialidades) ? formData.especialidades.slice() : []
+                                if (checked) {
+                                  if (!curr.includes(s)) curr.push(s)
+                                } else {
+                                  const idx = curr.indexOf(s)
+                                  if (idx > -1) curr.splice(idx, 1)
+                                }
+                                setFormData({ ...formData, especialidades: curr })
+                              }}
+                            />
+                            <span className="text-sm">{s}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </SelectContent>
-              </Select>
+                  {/* dinámicas */}
+                  {specialtiesAvailable
+                    .filter((s) => !flatSpecialties.includes(s))
+                    .map((s) => (
+                      <label key={s} className="inline-flex items-center gap-2 px-2 py-1">
+                        <Checkbox
+                          checked={(formData.especialidades || []).includes(s)}
+                          onCheckedChange={(checked) => {
+                            const curr = Array.isArray(formData.especialidades) ? formData.especialidades.slice() : []
+                            if (checked) {
+                              if (!curr.includes(s)) curr.push(s)
+                            } else {
+                              const idx = curr.indexOf(s)
+                              if (idx > -1) curr.splice(idx, 1)
+                            }
+                            setFormData({ ...formData, especialidades: curr })
+                          }}
+                        />
+                        <span className="text-sm">{s}</span>
+                      </label>
+                    ))}
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Sucursal</Label>
@@ -406,7 +492,7 @@ export default function Veterinarios({ sesion }) {
                 <div className="min-w-0 flex-1">
                   <CardTitle className="truncate text-lg text-[#0f2f3a]">{vet.nombreCompleto}</CardTitle>
                   <CardDescription className="mt-1 text-[#0f2f3a]/70">
-                    {vet.especialidad}
+                    {(vet.especialidades || []).join(', ')}
                   </CardDescription>
                 </div>
                 <Badge className={vet.estado === 'activo' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' : 'bg-rose-100 text-rose-700 hover:bg-rose-100'}>
@@ -417,7 +503,7 @@ export default function Veterinarios({ sesion }) {
                 <div className="grid gap-3 text-sm text-[#0f2f3a]">
                   <div className="flex items-center gap-2">
                     <Stethoscope className="h-4 w-4 text-[#0ebccc]" />
-                    <span className="font-medium">Especialidad:</span> <span className="text-[#0f2f3a]/75">{vet.especialidad}</span>
+                    <span className="font-medium">Especialidad:</span> <span className="text-[#0f2f3a]/75">{(vet.especialidades || []).join(', ')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-[#eb008f]" />
@@ -473,7 +559,7 @@ export default function Veterinarios({ sesion }) {
               <DetailBlock title="Teléfono" value={selectedVet.telefono} />
               <DetailBlock title="Correo" value={selectedVet.correo} />
               <DetailBlock title="Rol" value={selectedVet.rol} />
-              <DetailBlock title="Especialidad" value={selectedVet.especialidad} />
+              <DetailBlock title="Especialidad" value={(selectedVet.especialidades || []).join(', ')} />
               <DetailBlock title="Sucursal" value={selectedVet.sucursal} />
               <DetailBlock title="Estado" value={selectedVet.estado} />
               <div className="rounded-2xl border border-[#0ebccc]/20 bg-white p-4 md:col-span-2">
