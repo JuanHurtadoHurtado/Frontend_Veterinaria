@@ -63,10 +63,12 @@
 }
 .app-main {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 100%;
   padding: 2rem 1.5rem;
+}
+
+.app-main > * {
+  width: 100%;
 }
 .card {
   width: min(680px, 100%);

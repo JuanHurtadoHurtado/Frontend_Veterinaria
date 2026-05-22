@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon } from 'lucide-react'
+import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon, Users } from 'lucide-react'
 import { loadJSON, setUsuarios, pushLog } from '@/lib/storage'
 import { format } from 'date-fns'
 
@@ -140,13 +140,19 @@ export default function GestionUsuarios() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Gestión de Usuarios</h2>
+    <div className="space-y-6">
+      <div className="rounded-3xl border border-[#0ebccc]/20 bg-white/90 p-6 shadow-[0_24px_80px_rgba(14,188,204,0.12)]">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#fcd8fa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#eb008f]">
+              <Users className="h-3.5 w-3.5" /> Usuarios
+            </div>
+            <h2 className="mt-3 text-3xl font-bold text-[#0f2f3a]">Gestión de Usuarios</h2>
+          </div>
         <Dialog open={openDialog} onOpenChange={setOpenDialog}>
           <DialogTrigger asChild>
-            <Button onClick={handleAddUsuario} className="gap-2">
-              <Plus size={16} /> Nuevo Usuario
+            <Button onClick={handleAddUsuario} className="h-11 rounded-xl bg-[#0ebccc] text-white hover:bg-[#0aa7b6]">
+              <Plus className="mr-2 h-4 w-4" /> Nuevo Usuario
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
@@ -300,6 +306,7 @@ export default function GestionUsuarios() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <div className="border rounded-lg">

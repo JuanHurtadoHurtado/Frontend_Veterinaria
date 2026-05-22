@@ -183,9 +183,6 @@ export default function Mascotas({ sesion }) {
               <PawPrint className="h-3.5 w-3.5" /> Mascotas
             </div>
             <h1 className="mt-3 text-3xl font-bold text-[#0f2f3a]">Registro de mascotas</h1>
-            <p className="mt-2 max-w-3xl text-sm text-[#0f2f3a]/70">
-              Administra las mascotas registradas por administración y recepción. Desde aquí puedes crear, editar y eliminar los registros.
-            </p>
           </div>
 
           <Dialog open={openDialog} onOpenChange={setOpenDialog}>

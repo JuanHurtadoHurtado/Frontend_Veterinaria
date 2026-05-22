@@ -285,9 +285,6 @@ export default function Veterinarios({ sesion }) {
               Veterinarios
             </div>
             <h1 className="mt-3 text-3xl font-bold text-[#0f2f3a]">Gestión de veterinarios</h1>
-            <p className="mt-2 max-w-2xl text-sm text-[#0f2f3a]/70">
-              Filtra, crea, edita y administra el estado de los veterinarios registrados a partir de los usuarios con rol veterinario.
-            </p>
           </div>
           <Button onClick={openCreateForm} className="h-11 rounded-xl bg-[#0ebccc] text-white hover:bg-[#0aa7b6]">
             <Plus className="mr-2 h-4 w-4" /> Crear veterinario
