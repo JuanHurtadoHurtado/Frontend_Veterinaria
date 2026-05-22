@@ -8,6 +8,7 @@ export default function Sidebar({ sesion }) {
   const sectionsByRole = {
     administrador: [
       { label: 'Usuarios', to: '/administrador/personal/usuarios' },
+      { label: 'Veterinarios', to: '/administrador/veterinarios' },
       { label: 'Control de acceso', to: '/administrador/personal/permisos' },
       { label: 'Registro de actividades', to: '/administrador/personal/logs' },
       { label: 'Documentos', to: '/administrador/clinica/documentos' },

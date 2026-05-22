@@ -7,6 +7,7 @@ import Sidebar from './components/ui/sidebar'
 import Administrador from './pages/Administrador'
 import AdminPersonal from './pages/admin/Personal'
 import AdminClinica from './pages/admin/Clinica'
+import AdminVeterinarios from './pages/admin/Veterinarios'
 import GestionUsuarios from './pages/admin/Personal/GestionUsuarios'
 import ControlAcceso from './pages/admin/Personal/ControlAcceso'
 import RegistroActividades from './pages/admin/Personal/RegistroActividades'
@@ -197,6 +198,16 @@ function App() {
               element={
                 <ProtectedRoute
                   element={<SeguimientoEnfermedades sesion={sesion} />}
+                  requiredRole="administrador"
+                  sesion={sesion}
+                />
+              }
+            />
+            <Route
+              path="/administrador/veterinarios"
+              element={
+                <ProtectedRoute
+                  element={<AdminVeterinarios sesion={sesion} />}
                   requiredRole="administrador"
                   sesion={sesion}
                 />

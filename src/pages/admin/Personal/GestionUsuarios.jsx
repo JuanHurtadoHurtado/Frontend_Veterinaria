@@ -9,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon } from 'lucide-react'
 import { loadJSON, setUsuarios, pushLog } from '@/lib/storage'
 import { format } from 'date-fns'
@@ -26,6 +25,7 @@ export default function GestionUsuarios() {
   const [usuarios, setUsuariosState] = useState(() => loadJSON('usuarios', initialUsuarios))
   
   const [openDialog, setOpenDialog] = useState(false)
+  const [openDetailDialog, setOpenDetailDialog] = useState(false)
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState(null)
   const [formData, setFormData] = useState({
@@ -110,10 +110,6 @@ export default function GestionUsuarios() {
     setOpenDeleteAlert(false)
   }
 
-  const getBadgeVariant = (estado) => {
-    return estado === 'activo' ? 'default' : 'destructive'
-  }
-
   const getRolColor = (rol) => {
     const colors = {
       administrador: 'bg-red-100 text-red-800',
@@ -122,6 +118,25 @@ export default function GestionUsuarios() {
       usuario: 'bg-gray-100 text-gray-800'
     }
     return colors[rol] || 'bg-gray-100 text-gray-800'
+  }
+
+  const getDisplayName = (usuario) => `${usuario?.nombres || ''} ${usuario?.apellidos || ''}`.trim()
+
+  const handleToggleEstado = (usuario) => {
+    const nuevoEstado = usuario.estado === 'activo' ? 'inactivo' : 'activo'
+    const updated = usuarios.map((u) => (u.id === usuario.id ? { ...u, estado: nuevoEstado } : u))
+    setUsuariosState(updated)
+    setUsuarios(updated)
+    pushLog({
+      usuario: usuario.correo,
+      accion: 'Cambió estado',
+      detalle: `${getDisplayName(usuario)} pasó a ${nuevoEstado}`,
+    })
+  }
+
+  const handleVerDetalle = (usuario) => {
+    setSelectedUsuario(usuario)
+    setOpenDetailDialog(true)
   }
 
   return (
@@ -211,9 +226,16 @@ export default function GestionUsuarios() {
                       {formData.fechaNacimiento ? format(new Date(`${formData.fechaNacimiento}T00:00:00`), 'dd/MM/yyyy') : 'Selecciona una fecha'}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent
+                    className="w-[19rem] rounded-2xl border border-[#0ebccc]/20 bg-white p-2 shadow-[0_20px_60px_rgba(14,188,204,0.14)]"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    avoidCollisions={false}
+                  >
                     <Calendar
                       mode="single"
+                      className="p-0"
                       selected={formData.fechaNacimiento ? new Date(`${formData.fechaNacimiento}T00:00:00`) : undefined}
                       onSelect={(date) =>
                         setFormData({
@@ -284,11 +306,7 @@ export default function GestionUsuarios() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombres</TableHead>
-              <TableHead>Apellidos</TableHead>
-              <TableHead>Documento</TableHead>
-              <TableHead>F. Nacimiento</TableHead>
-              <TableHead>Teléfono</TableHead>
+              <TableHead>Nombres completos</TableHead>
               <TableHead>Correo</TableHead>
               <TableHead>Rol</TableHead>
               <TableHead>Estado</TableHead>
@@ -298,11 +316,7 @@ export default function GestionUsuarios() {
           <TableBody>
             {usuarios.map(usuario => (
               <TableRow key={usuario.id}>
-                <TableCell className="font-mono text-sm">{usuario.nombres}</TableCell>
-                <TableCell>{usuario.apellidos}</TableCell>
-                <TableCell>{usuario.documentoTipo} - {usuario.documentoNumero}</TableCell>
-                <TableCell>{usuario.fechaNacimiento || '-'}</TableCell>
-                <TableCell>{usuario.telefono || '-'}</TableCell>
+                <TableCell className="font-medium text-sm">{getDisplayName(usuario)}</TableCell>
                 <TableCell className="font-mono text-sm">{usuario.correo}</TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${getRolColor(usuario.rol)}`}>
@@ -310,9 +324,14 @@ export default function GestionUsuarios() {
                   </span>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getBadgeVariant(usuario.estado)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className={`h-8 rounded-full px-3 text-xs font-semibold capitalize ${usuario.estado === 'activo' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' : 'bg-rose-100 text-rose-700 hover:bg-rose-200'}`}
+                    onClick={() => handleToggleEstado(usuario)}
+                  >
                     {usuario.estado}
-                  </Badge>
+                  </Button>
                 </TableCell>
                 <TableCell className="text-right">
                   <DropdownMenu>
@@ -322,6 +341,9 @@ export default function GestionUsuarios() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleVerDetalle(usuario)} className="gap-2">
+                        <Plus size={14} /> Ver detalle
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => handleEditUsuario(usuario)} className="gap-2">
                         <Edit2 size={14} /> Editar
                       </DropdownMenuItem>
@@ -342,6 +364,46 @@ export default function GestionUsuarios() {
           </TableBody>
         </Table>
       </div>
+
+      <Dialog open={openDetailDialog} onOpenChange={setOpenDetailDialog}>
+        <DialogContent className="sm:max-w-2xl rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-[#0f2f3a]">Detalle del usuario</DialogTitle>
+            <DialogDescription className="text-[#0f2f3a]/70">
+              Información completa del registro seleccionado.
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedUsuario && (
+            <div className="grid gap-3 pt-2 text-sm text-[#0f2f3a] md:grid-cols-2">
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Nombres completos</div>
+                <div className="mt-1 font-medium">{getDisplayName(selectedUsuario)}</div>
+              </div>
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Documento</div>
+                <div className="mt-1 font-medium">{selectedUsuario.documentoTipo} - {selectedUsuario.documentoNumero}</div>
+              </div>
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Fecha de nacimiento</div>
+                <div className="mt-1 font-medium">{selectedUsuario.fechaNacimiento || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Teléfono</div>
+                <div className="mt-1 font-medium">{selectedUsuario.telefono || '-'}</div>
+              </div>
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 md:col-span-2">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Correo</div>
+                <div className="mt-1 font-medium">{selectedUsuario.correo}</div>
+              </div>
+              <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 md:col-span-2">
+                <div className="text-xs uppercase tracking-wide text-[#eb008f]">Rol</div>
+                <div className="mt-1 font-medium capitalize">{selectedUsuario.rol}</div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={openDeleteAlert} onOpenChange={setOpenDeleteAlert}>
         <AlertDialogContent>
