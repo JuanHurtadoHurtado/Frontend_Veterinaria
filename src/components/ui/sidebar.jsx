@@ -45,6 +45,7 @@ export default function Sidebar({ sesion }) {
       { label: 'Usuarios', to: '/administrador/personal/usuarios', icon: Users },
       { label: 'Veterinarios', to: '/administrador/veterinarios', icon: Stethoscope },
       { label: 'Mascotas', to: '/administrador/mascotas', icon: PawPrint },
+      { label: 'Citas', to: '/administrador/citas', icon: CalendarDays },
       { label: 'Control de acceso', to: '/administrador/personal/permisos', icon: ShieldCheck },
       { label: 'Registro de actividades', to: '/administrador/personal/logs', icon: Activity },
       { label: 'Documentos', to: '/administrador/clinica/documentos', icon: FileText },
@@ -57,9 +58,7 @@ export default function Sidebar({ sesion }) {
       { label: 'Comunicación', to: '/veterinario/comunicacion', icon: MessageCircleMore },
     ],
     recepcionista: [
-      { label: 'Mascotas', to: '/recepcionista/mascotas', icon: PawPrint },
-      { label: 'Registrar usuario', to: '/recepcionista/registrar', icon: UserPlus },
-      { label: 'Facturación', to: '/recepcionista/facturacion', icon: ReceiptText },
+      { label: 'Citas', to: '/recepcionista/citas', icon: CalendarDays },
     ],
     usuario: [
       { label: 'Mi perfil', to: '/usuario', icon: UserCircle2 },

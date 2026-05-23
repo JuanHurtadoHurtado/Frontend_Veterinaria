@@ -6,6 +6,7 @@ import { storageEvents } from './lib/storage'
 import Sidebar from './components/ui/sidebar'
 import AdminPersonal from './pages/admin/Personal'
 import AdminClinica from './pages/admin/Clinica'
+import AdminCitas from './pages/admin/Citas'
 import AdminVeterinarios from './pages/admin/Veterinarios'
 import Mascotas from './pages/Mascotas'
 import GestionUsuarios from './pages/admin/Personal/GestionUsuarios'
@@ -21,7 +22,7 @@ import Registro from './pages/Registro'
 function ProtectedRoute({ element, requiredRole, requiredRoles, sesion }) {
   const HOME_BY_ROLE = {
     administrador: '/administrador/personal/usuarios',
-    recepcionista: '/recepcionista/mascotas',
+    recepcionista: '/recepcionista/citas',
     veterinario: '/veterinario',
     usuario: '/usuario',
   }
@@ -191,6 +192,16 @@ function App() {
               }
             />
             <Route
+              path="/administrador/citas"
+              element={
+                <ProtectedRoute
+                  element={<AdminCitas sesion={sesion} />}
+                  requiredRole="administrador"
+                  sesion={sesion}
+                />
+              }
+            />
+            <Route
               path="/administrador/veterinarios"
               element={
                 <ProtectedRoute
@@ -202,7 +213,17 @@ function App() {
             />
             <Route
               path="/recepcionista"
-              element={<Navigate to="/recepcionista/mascotas" replace />}
+              element={<Navigate to="/recepcionista/citas" replace />}
+            />
+            <Route
+              path="/recepcionista/citas"
+              element={
+                <ProtectedRoute
+                  element={<AdminCitas sesion={sesion} />}
+                  requiredRole="recepcionista"
+                  sesion={sesion}
+                />
+              }
             />
             <Route
               path="/recepcionista/mascotas"
@@ -243,7 +264,7 @@ function App() {
                     to={
                       {
                         administrador: '/administrador/personal/usuarios',
-                        recepcionista: '/recepcionista/mascotas',
+                        recepcionista: '/recepcionista/citas',
                         veterinario: '/veterinario',
                         usuario: '/usuario',
                       }[sesion.rol] || '/login'

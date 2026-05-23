@@ -18,6 +18,8 @@ export const AUTH_SERVICE = {
     const usuarios = JSON.parse(localStorage.getItem(USUARIOS_KEY)) || []
 
     const existeAdmin = usuarios.some((u) => u.rol === 'administrador')
+    const existeRecepcionista = usuarios.some((u) => u.rol === 'recepcionista')
+    const creados = []
 
     if (!existeAdmin) {
       const adminSemilla = {
@@ -28,12 +30,24 @@ export const AUTH_SERVICE = {
         fechaRegistro: new Date().toISOString(),
       }
       usuarios.push(adminSemilla)
-      localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios))
-      return {
-        creado: true,
-        email: adminSemilla.email,
-        password: adminSemilla.password,
+      creados.push({ rol: 'administrador', email: adminSemilla.email, password: adminSemilla.password })
+    }
+
+    if (!existeRecepcionista) {
+      const recepcionistaSemilla = {
+        id: Date.now() + 1,
+        email: 'recepcionista@healthypets.com',
+        password: 'recepcionista123',
+        rol: 'recepcionista',
+        fechaRegistro: new Date().toISOString(),
       }
+      usuarios.push(recepcionistaSemilla)
+      creados.push({ rol: 'recepcionista', email: recepcionistaSemilla.email, password: recepcionistaSemilla.password })
+    }
+
+    if (creados.length > 0) {
+      localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuarios))
+      return { creado: true, creados }
     }
 
     return { creado: false }
