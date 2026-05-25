@@ -205,7 +205,7 @@ export default function Veterinarios({ sesion }) {
       documentoNumero: selectedUser.documentoNumero || '',
       fechaNacimiento: selectedUser.fechaNacimiento || '',
       telefono: selectedUser.telefono || '',
-      correo: selectedUser.correo || selectedUser.email || '',
+      email: selectedUser.email || '',
       rol: selectedUser.rol || 'veterinario',
       especialidades: formData.especialidades,
       sucursal: formData.sucursal,
@@ -543,18 +543,18 @@ export default function Veterinarios({ sesion }) {
       )}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
+        <DialogContent className="w-[400px] h-[802.7px] overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
           <DialogHeader>
             <DialogTitle className="text-2xl text-[#0f2f3a]">Detalle del veterinario</DialogTitle>
             <DialogDescription className="text-[#0f2f3a]/70">Información completa del usuario y del veterinario.</DialogDescription>
           </DialogHeader>
           {selectedVet && (
-            <div className="grid gap-4 pt-2 md:grid-cols-2">
+            <div className="grid gap-4 pt-2 grid-cols-1">
               <DetailBlock title="Nombre completo" value={selectedVet.nombreCompleto} />
               <DetailBlock title="Documento" value={`${selectedVet.documentoTipo || '-'} ${selectedVet.documentoNumero || ''}`.trim()} />
               <DetailBlock title="Fecha de nacimiento" value={selectedVet.fechaNacimiento} />
               <DetailBlock title="Teléfono" value={selectedVet.telefono} />
-              <DetailBlock title="Correo" value={selectedVet.correo} />
+              <DetailBlock title="Correo" value={selectedVet.email} />
               <DetailBlock title="Rol" value={selectedVet.rol} />
               <DetailBlock title="Especialidad" value={(selectedVet.especialidades || []).join(', ')} />
               <DetailBlock title="Sucursal" value={selectedVet.sucursal} />

@@ -23,6 +23,7 @@ export const AUTH_SERVICE = {
       const adminSemilla = {
         id: Date.now(),
         email: 'admin@healthypets.com',
+        nombres: 'HealthyPets',
         password: 'admin123',
         rol: 'administrador',
         fechaRegistro: new Date().toISOString(),
@@ -41,9 +42,28 @@ export const AUTH_SERVICE = {
 
   /**
    * Obtiene todos los usuarios
+   * Migra automáticamente el campo "correo" a "email" si no existe
    */
   obtenerUsuarios: () => {
-    return JSON.parse(localStorage.getItem(USUARIOS_KEY)) || []
+    const usuarios = JSON.parse(localStorage.getItem(USUARIOS_KEY)) || []
+    
+    // Migración automática: copiar "correo" a "email" si no existe
+    let migrado = false
+    const usuariosMigrados = usuarios.map(usuario => {
+      if (!usuario.email && usuario.correo) {
+        migrado = true
+        return { ...usuario, email: usuario.correo }
+      }
+      return usuario
+    })
+    
+    // Guardar si hubo migración
+    if (migrado) {
+      localStorage.setItem(USUARIOS_KEY, JSON.stringify(usuariosMigrados))
+      return usuariosMigrados
+    }
+    
+    return usuarios
   },
 
   /**
@@ -118,6 +138,8 @@ export const AUTH_SERVICE = {
       documentoTipo: payload.documentoTipo || '',
       documentoNumero: payload.documentoNumero || '',
       telefono: payload.telefono || '',
+      fechaNacimiento: payload.fechaNacimiento || '',
+      estado: 'activo',
       fechaRegistro: new Date().toISOString(),
     }
 

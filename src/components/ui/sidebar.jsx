@@ -45,7 +45,6 @@ export default function Sidebar({ sesion }) {
       { label: 'Usuarios', to: '/administrador/personal/usuarios', icon: Users },
       { label: 'Veterinarios', to: '/administrador/veterinarios', icon: Stethoscope },
       { label: 'Mascotas', to: '/administrador/mascotas', icon: PawPrint },
-      { label: 'Control de acceso', to: '/administrador/personal/permisos', icon: ShieldCheck },
       { label: 'Registro de actividades', to: '/administrador/personal/logs', icon: Activity },
       { label: 'Documentos', to: '/administrador/clinica/documentos', icon: FileText },
       { label: 'Seguimiento clínico', to: '/administrador/clinica/seguimiento', icon: HeartPulse },

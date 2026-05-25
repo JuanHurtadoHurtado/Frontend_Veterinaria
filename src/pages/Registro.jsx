@@ -1,13 +1,16 @@
 import { useState } from 'react'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, Calendar as CalendarIcon } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Calendar } from '@/components/ui/calendar'
 import { AUTH_SERVICE } from '@/services/auth'
 import { loadJSON, pushLog, setMascotas } from '@/lib/storage'
+import { format } from 'date-fns'
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Conejo', 'Hámster', 'Reptil', 'Otro']
 const DOCUMENTOS = ['DNI', 'CE']
@@ -23,8 +26,9 @@ export default function Registro() {
     apellidos: '',
     documentoTipo: 'DNI',
     documentoNumero: '',
+    fechaNacimiento: '',
     telefono: '',
-    correo: '',
+    email: '',
     password: '',
     confirmPassword: '',
     nombreMascota: '',
@@ -50,7 +54,7 @@ export default function Registro() {
 
     const nombres = formData.nombres.trim()
     const apellidos = formData.apellidos.trim()
-    const correo = formData.correo.trim()
+    const email = formData.email.trim()
     const documentoNumero = String(formData.documentoNumero || '').trim()
     const telefono = String(formData.telefono || '').trim()
     const nombreMascota = formData.nombreMascota.trim()
@@ -58,13 +62,13 @@ export default function Registro() {
     const password = formData.password
     const confirmPassword = formData.confirmPassword
 
-    if (!nombres || !apellidos || !correo || !documentoNumero || !telefono || !nombreMascota || !direccion) {
+    if (!nombres || !apellidos || !email || !documentoNumero || !telefono || !nombreMascota || !direccion) {
       setMessage({ type: 'error', text: 'Completa todos los datos del usuario y la mascota.' })
       setLoading(false)
       return
     }
 
-    if (!isValidEmail(correo)) {
+    if (!isValidEmail(email)) {
       setMessage({ type: 'error', text: 'Ingresa un correo válido.' })
       setLoading(false)
       return
@@ -106,8 +110,9 @@ export default function Registro() {
       documentoTipo: formData.documentoTipo,
       documentoNumero,
       telefono,
-      email: correo,
+      email,
       password,
+      fechaNacimiento: formData.fechaNacimiento,
       rol: 'usuario',
     })
 
@@ -133,7 +138,7 @@ export default function Registro() {
     setMascotas(updatedMascotas)
 
     pushLog({
-      usuario: correo,
+      usuario: email,
       accion: 'Registro público',
       detalle: `Creó cuenta de usuario y mascota ${nombreMascota}`,
     })
@@ -255,17 +260,53 @@ export default function Registro() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="correo">Correo</Label>
+                  <Label htmlFor="email">Correo</Label>
                   <Input
-                    id="correo"
+                    id="email"
                     type="email"
-                    value={formData.correo}
-                    onChange={(e) => handleChange('correo', e.target.value)}
+                    value={formData.email}
+                    onChange={(e) => handleChange('email', e.target.value)}
                     placeholder="tu@correo.com"
                     className={inputClassName}
                     disabled={loading}
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-[#0f2f3a]">Fecha de nacimiento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-11 w-full justify-start rounded-xl border-[#0ebccc]/25 bg-white text-left font-normal text-[#0f2f3a]"
+                      disabled={loading}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-[#0ebccc]" />
+                      {formData.fechaNacimiento ? format(new Date(`${formData.fechaNacimiento}T00:00:00`), 'dd/MM/yyyy') : 'Selecciona una fecha'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="w-[19rem] rounded-2xl border border-[#0ebccc]/20 bg-white p-2 shadow-[0_20px_60px_rgba(14,188,204,0.14)]"
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    avoidCollisions={false}
+                  >
+                    <Calendar
+                      mode="single"
+                      className="p-0"
+                      selected={formData.fechaNacimiento ? new Date(`${formData.fechaNacimiento}T00:00:00`) : undefined}
+                      onSelect={(date) =>
+                        handleChange(
+                          'fechaNacimiento',
+                          date ? format(date, 'yyyy-MM-dd') : '',
+                        )
+                      }
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </section>
 

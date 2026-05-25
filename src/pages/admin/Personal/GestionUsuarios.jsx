@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon, Users } from 'lucide-react'
+import { MoreHorizontal, Trash2, Edit2, Plus, Calendar as CalendarIcon, Users, Search } from 'lucide-react'
 import { loadJSON, setUsuarios, pushLog } from '@/lib/storage'
 import { format } from 'date-fns'
 
@@ -17,9 +17,9 @@ const ROLES = ['Administrador', 'Veterinario', 'Recepcionista', 'Usuario']
 
 export default function GestionUsuarios() {
   const initialUsuarios = [
-    { id: 1, nombres: 'Admin', apellidos: 'Usuario', documentoTipo: 'DNI', documentoNumero: '00000000', fechaNacimiento: '1980-01-01', telefono: '', correo: 'admin@vet.com', rol: 'administrador', estado: 'activo' },
-    { id: 2, nombres: 'Dr. García', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000001', fechaNacimiento: '1985-05-12', telefono: '', correo: 'vet1@vet.com', rol: 'veterinario', estado: 'activo' },
-    { id: 3, nombres: 'María', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000002', fechaNacimiento: '1990-03-03', telefono: '', correo: 'recep@vet.com', rol: 'recepcionista', estado: 'activo' },
+    { id: 1, nombres: 'Admin', apellidos: 'Usuario', documentoTipo: 'DNI', documentoNumero: '00000000', fechaNacimiento: '1980-01-01', telefono: '', email: 'admin@vet.com', rol: 'administrador', estado: 'activo' },
+    { id: 2, nombres: 'Dr. García', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000001', fechaNacimiento: '1985-05-12', telefono: '', email: 'vet1@vet.com', rol: 'veterinario', estado: 'activo' },
+    { id: 3, nombres: 'María', apellidos: '', documentoTipo: 'DNI', documentoNumero: '00000002', fechaNacimiento: '1990-03-03', telefono: '', email: 'recep@vet.com', rol: 'recepcionista', estado: 'activo' },
   ]
 
   const [usuarios, setUsuariosState] = useState(() => loadJSON('usuarios', initialUsuarios))
@@ -29,6 +29,9 @@ export default function GestionUsuarios() {
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false)
   const [selectedUsuario, setSelectedUsuario] = useState(null)
   const [hoveredPasswordId, setHoveredPasswordId] = useState(null)
+  const [filterRole, setFilterRole] = useState('all')
+  const [filterEstado, setFilterEstado] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [formData, setFormData] = useState({
     nombres: '',
     apellidos: '',
@@ -36,7 +39,7 @@ export default function GestionUsuarios() {
     documentoNumero: '',
     fechaNacimiento: '',
     telefono: '',
-    correo: '',
+    email: '',
     rol: 'usuario',
   })
 
@@ -64,7 +67,7 @@ export default function GestionUsuarios() {
       documentoNumero: '',
       fechaNacimiento: '',
       telefono: '',
-      correo: '',
+      email: '',
       rol: 'usuario',
     })
     setOpenDialog(true)
@@ -79,7 +82,7 @@ export default function GestionUsuarios() {
       documentoNumero: usuario.documentoNumero || '',
       fechaNacimiento: usuario.fechaNacimiento || '',
       telefono: usuario.telefono || '',
-      correo: usuario.correo || usuario.email || '',
+      email: usuario.email || '',
       rol: usuario.rol,
     })
     setOpenDialog(true)
@@ -87,7 +90,7 @@ export default function GestionUsuarios() {
 
   const handleSaveUsuario = () => {
     // Validaciones básicas
-    if (!formData.nombres || !formData.apellidos || !formData.correo) {
+    if (!formData.nombres || !formData.apellidos || !formData.email) {
       window.alert('Por favor complete nombres, apellidos y correo.')
       return
     }
@@ -106,17 +109,17 @@ export default function GestionUsuarios() {
     const rolNormalizado = String(formData.rol || '').trim().toLowerCase()
 
     if (selectedUsuario) {
-      const updated = usuarios.map(u => u.id === selectedUsuario.id ? { ...u, ...formData, rol: rolNormalizado, email: formData.correo } : u)
+      const updated = usuarios.map(u => u.id === selectedUsuario.id ? { ...u, ...formData, rol: rolNormalizado } : u)
       setUsuariosState(updated)
       setUsuarios(updated)
-      pushLog({ usuario: formData.correo, accion: 'Editó usuario', detalle: `Actualizó a ${formData.correo}` })
+      pushLog({ usuario: formData.email, accion: 'Editó usuario', detalle: `Actualizó a ${formData.email}` })
     } else {
       const generatedPassword = generarContrasena(formData.nombres, formData.apellidos, formData.documentoNumero)
-      const nuevo = { id: Math.max(...usuarios.map(u => u.id), 0) + 1, ...formData, rol: rolNormalizado, estado: 'activo', password: generatedPassword, email: formData.correo }
+      const nuevo = { id: Math.max(...usuarios.map(u => u.id), 0) + 1, ...formData, rol: rolNormalizado, estado: 'activo', password: generatedPassword }
       const updated = [...usuarios, nuevo]
       setUsuariosState(updated)
       setUsuarios(updated)
-      pushLog({ usuario: formData.correo, accion: 'Creó usuario', detalle: `Creó a ${formData.correo}` })
+      pushLog({ usuario: formData.email, accion: 'Creó usuario', detalle: `Creó a ${formData.email}` })
     }
     setOpenDialog(false)
   }
@@ -125,7 +128,7 @@ export default function GestionUsuarios() {
     const updated = usuarios.filter(u => u.id !== selectedUsuario.id)
     setUsuariosState(updated)
     setUsuarios(updated)
-    pushLog({ usuario: selectedUsuario?.correo || selectedUsuario?.email, accion: 'Eliminó usuario', detalle: `Eliminó a ${selectedUsuario?.correo || selectedUsuario?.email}` })
+    pushLog({ usuario: selectedUsuario?.email, accion: 'Eliminó usuario', detalle: `Eliminó a ${selectedUsuario?.email}` })
     setOpenDeleteAlert(false)
   }
 
@@ -147,7 +150,7 @@ export default function GestionUsuarios() {
     setUsuariosState(updated)
     setUsuarios(updated)
     pushLog({
-      usuario: usuario.correo,
+      usuario: usuario.email,
       accion: 'Cambió estado',
       detalle: `${getDisplayName(usuario)} pasó a ${nuevoEstado}`,
     })
@@ -157,6 +160,17 @@ export default function GestionUsuarios() {
     setSelectedUsuario(usuario)
     setOpenDetailDialog(true)
   }
+
+  const displayedUsuarios = usuarios.filter((u) => {
+    const matchesRole = filterRole === 'all' ? true : String(u.rol || '').toLowerCase() === filterRole
+    const matchesEstado = filterEstado === 'all' ? true : String((u.estado || 'activo')).toLowerCase() === filterEstado
+    const q = String(searchTerm || '').trim().toLowerCase()
+    const matchesSearch = !q || [u.nombres, u.apellidos, u.email, u.documentoNumero]
+      .filter(Boolean)
+      .some((field) => String(field).toLowerCase().includes(q))
+
+    return matchesRole && matchesEstado && matchesSearch
+  })
 
   return (
     <div className="space-y-6">
@@ -289,14 +303,14 @@ export default function GestionUsuarios() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="correo" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
+                  <Label htmlFor="email" className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">
                     Correo personal
                   </Label>
                   <Input
-                    id="correo"
+                    id="email"
                     type="email"
-                    value={formData.correo}
-                    onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     placeholder="correo@ejemplo.com"
                     className="h-11 rounded-xl border-[#0ebccc]/25 bg-white"
                   />
@@ -326,6 +340,48 @@ export default function GestionUsuarios() {
           </DialogContent>
         </Dialog>
         </div>
+        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Buscar</Label>
+            <div className="flex items-center rounded-xl border border-[#0ebccc]/25 bg-white px-3 shadow-sm">
+              <Search className="h-4 w-4 text-[#0ebccc]" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Buscar por nombre, correo o documento"
+                className="h-11 border-0 bg-transparent px-2 shadow-none focus-visible:ring-0"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Rol</Label>
+            <Select value={filterRole} onValueChange={(v) => setFilterRole(v)}>
+              <SelectTrigger className="h-11 rounded-xl border-[#0ebccc]/25 bg-white text-left">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="administrador">Administrador</SelectItem>
+                <SelectItem value="veterinario">Veterinario</SelectItem>
+                <SelectItem value="recepcionista">Recepcionista</SelectItem>
+                <SelectItem value="usuario">Usuario</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Estado</Label>
+            <Select value={filterEstado} onValueChange={(v) => setFilterEstado(v)}>
+              <SelectTrigger className="h-11 rounded-xl border-[#0ebccc]/25 bg-white text-left">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="activo">Activo</SelectItem>
+                <SelectItem value="inactivo">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       <div className="border rounded-lg">
@@ -341,10 +397,10 @@ export default function GestionUsuarios() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {usuarios.map(usuario => (
+            {displayedUsuarios.map(usuario => (
               <TableRow key={usuario.id}>
                 <TableCell className="font-medium text-sm">{getDisplayName(usuario)}</TableCell>
-                <TableCell className="font-mono text-sm">{usuario.correo}</TableCell>
+                <TableCell className="font-mono text-sm">{usuario.email}</TableCell>
                 <TableCell className="font-mono text-sm">
                   <div
                     onMouseEnter={() => setHoveredPasswordId(usuario.id)}
@@ -367,7 +423,7 @@ export default function GestionUsuarios() {
                 </TableCell>
                 <TableCell>
                   <span className={`px-2 py-1 rounded text-xs font-semibold ${getRolColor(usuario.rol)}`}>
-                    {usuario.rol}
+                    {usuario.rol.toUpperCase()}
                   </span>
                 </TableCell>
                 <TableCell>
@@ -441,11 +497,11 @@ export default function GestionUsuarios() {
               </div>
               <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 md:col-span-2">
                 <div className="text-xs uppercase tracking-wide text-[#eb008f]">Correo</div>
-                <div className="mt-1 font-medium">{selectedUsuario.correo}</div>
+                <div className="mt-1 font-medium">{selectedUsuario.email}</div>
               </div>
               <div className="rounded-2xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 md:col-span-2">
                 <div className="text-xs uppercase tracking-wide text-[#eb008f]">Rol</div>
-                <div className="mt-1 font-medium capitalize">{selectedUsuario.rol}</div>
+                <div className="mt-1 font-medium">{selectedUsuario.rol.toUpperCase()}</div>
               </div>
             </div>
           )}

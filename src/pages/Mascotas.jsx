@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { MoreHorizontal, Plus, Edit2, Trash2, PawPrint } from 'lucide-react'
+import { MoreHorizontal, Plus, Edit2, Trash2, PawPrint, Search } from 'lucide-react'
 import { loadJSON, pushLog, setMascotas, storageEvents } from '@/lib/storage'
 
 const ESPECIES = ['Perro', 'Gato', 'Ave', 'Conejo', 'Hámster', 'Reptil', 'Otro']
@@ -39,6 +39,9 @@ export default function Mascotas({ sesion }) {
   const [openDetailDialog, setOpenDetailDialog] = useState(false)
   const [openDeleteAlert, setOpenDeleteAlert] = useState(false)
   const [selectedMascota, setSelectedMascota] = useState(null)
+  const [filterEspecie, setFilterEspecie] = useState('all')
+  const [filterEstado, setFilterEstado] = useState('all')
+  const [searchTerm, setSearchTerm] = useState('')
   const [formData, setFormData] = useState({
     nombreMascota: '',
     especie: 'Perro',
@@ -173,6 +176,16 @@ export default function Mascotas({ sesion }) {
   )
 
   const inputClassName = 'h-11 rounded-xl border-[#0ebccc]/25 bg-white'
+  const displayedMascotas = mascotas.filter((m) => {
+    const matchesEspecie = filterEspecie === 'all' ? true : String(m.especie || '').toLowerCase() === filterEspecie.toLowerCase()
+    const matchesEstado = filterEstado === 'all' ? true : String((m.estado || 'activo')).toLowerCase() === filterEstado.toLowerCase()
+    const q = String(searchTerm || '').trim().toLowerCase()
+    const matchesSearch = !q || [m.nombreMascota, m.nombreDueno, m.numeroDocumento]
+      .filter(Boolean)
+      .some((field) => String(field).toLowerCase().includes(q))
+
+    return matchesEspecie && matchesEstado && matchesSearch
+  })
 
   return (
     <div className="space-y-6">
@@ -194,114 +207,103 @@ export default function Mascotas({ sesion }) {
             <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
               <DialogHeader>
                 <DialogTitle className="text-2xl text-[#0f2f3a]">{selectedMascota ? 'Editar' : 'Registrar'} mascota</DialogTitle>
-                <DialogDescription className="text-[#0f2f3a]/70">
-                  Completa la información de la mascota y su dueño.
-                </DialogDescription>
+                <DialogDescription className="text-[#0f2f3a]/70">Completa la información de la mascota y su dueño.</DialogDescription>
               </DialogHeader>
 
               <div className="grid gap-4 pt-2">
                 <section className="rounded-3xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 shadow-sm">
-                  <div className="mb-4 inline-flex items-center rounded-full bg-[#fcd8fa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#eb008f]">
-                    Mascota
-                  </div>
+                  <div className="mb-4 inline-flex items-center rounded-full bg-[#fcd8fa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#eb008f]">Mascota</div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="nombreMascota" className="text-sm font-medium text-[#0f2f3a]">Nombre de la mascota</Label>
-                      <Input
-                        id="nombreMascota"
-                        value={formData.nombreMascota}
-                        onChange={(e) => setFormData({ ...formData, nombreMascota: e.target.value })}
-                        placeholder="Luna"
-                        className={inputClassName}
-                      />
+                      <Input id="nombreMascota" value={formData.nombreMascota} onChange={(e) => setFormData({ ...formData, nombreMascota: e.target.value })} placeholder="Luna" className={inputClassName} />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="especie" className="text-sm font-medium text-[#0f2f3a]">Especie de la mascota</Label>
                       <Select value={formData.especie} onValueChange={(value) => setFormData({ ...formData, especie: value })}>
-                        <SelectTrigger id="especie" className="border-[#0ebccc]/25 bg-white text-left">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {ESPECIES.map((especie) => (
-                            <SelectItem key={especie} value={especie}>{especie}</SelectItem>
-                          ))}
-                        </SelectContent>
+                        <SelectTrigger id="especie" className="border-[#0ebccc]/25 bg-white text-left"><SelectValue /></SelectTrigger>
+                        <SelectContent>{ESPECIES.map((especie) => <SelectItem key={especie} value={especie}>{especie}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="direccion" className="text-sm font-medium text-[#0f2f3a]">Dirección</Label>
-                      <Input
-                        id="direccion"
-                        value={formData.direccion}
-                        onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                        placeholder="Av. Los Álamos 123"
-                        className={inputClassName}
-                      />
+                      <Input id="direccion" value={formData.direccion} onChange={(e) => setFormData({ ...formData, direccion: e.target.value })} placeholder="Av. Los Álamos 123" className={inputClassName} />
                     </div>
                   </div>
                 </section>
 
                 <section className="rounded-3xl border border-[#0ebccc]/20 bg-[#fefefe] p-4 shadow-sm">
-                  <div className="mb-4 inline-flex items-center rounded-full bg-[#fcd8fa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#eb008f]">
-                    Dueño
-                  </div>
+                  <div className="mb-4 inline-flex items-center rounded-full bg-[#fcd8fa] px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-[#eb008f]">Dueño</div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="nombreDueno" className="text-sm font-medium text-[#0f2f3a]">Nombre del dueño</Label>
-                      <Input
-                        id="nombreDueno"
-                        value={formData.nombreDueno}
-                        onChange={(e) => setFormData({ ...formData, nombreDueno: e.target.value })}
-                        placeholder="Ana Pérez"
-                        className={inputClassName}
-                      />
+                      <Input id="nombreDueno" value={formData.nombreDueno} onChange={(e) => setFormData({ ...formData, nombreDueno: e.target.value })} placeholder="Ana Pérez" className={inputClassName} />
                     </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="tipoDocumento" className="text-sm font-medium text-[#0f2f3a]">Tipo de documento</Label>
                       <Select value={formData.tipoDocumento} onValueChange={(value) => setFormData({ ...formData, tipoDocumento: value })}>
-                        <SelectTrigger id="tipoDocumento" className="border-[#0ebccc]/25 bg-white text-left">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {DOCUMENTOS.map((tipo) => (
-                            <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>
-                          ))}
-                        </SelectContent>
+                        <SelectTrigger id="tipoDocumento" className="border-[#0ebccc]/25 bg-white text-left"><SelectValue /></SelectTrigger>
+                        <SelectContent>{DOCUMENTOS.map((tipo) => <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>)}</SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="numeroDocumento" className="text-sm font-medium text-[#0f2f3a]">Número de documento</Label>
-                      <Input
-                        id="numeroDocumento"
-                        value={formData.numeroDocumento}
-                        onChange={(e) => {
-                          const digitsOnly = formData.tipoDocumento === 'Pasaporte'
-                          const normalized = digitsOnly ? e.target.value.replace(/[^0-9A-Za-z]/g, '') : e.target.value.replace(/\D/g, '')
-                          const maxLength = formData.tipoDocumento === 'DNI' ? 8 : formData.tipoDocumento === 'CE' ? 9 : 12
-                          setFormData({ ...formData, numeroDocumento: normalized.slice(0, maxLength) })
-                        }}
-                        maxLength={formData.tipoDocumento === 'DNI' ? 8 : formData.tipoDocumento === 'CE' ? 9 : 12}
-                        placeholder={formData.tipoDocumento === 'DNI' ? '8 dígitos' : formData.tipoDocumento === 'CE' ? '9 dígitos' : 'Hasta 12 caracteres'}
-                        className={inputClassName}
-                      />
+                      <Input id="numeroDocumento" value={formData.numeroDocumento} onChange={(e) => {
+                        const digitsOnly = formData.tipoDocumento === 'Pasaporte'
+                        const normalized = digitsOnly ? e.target.value.replace(/[^0-9A-Za-z]/g, '') : e.target.value.replace(/\D/g, '')
+                        const maxLength = formData.tipoDocumento === 'DNI' ? 8 : formData.tipoDocumento === 'CE' ? 9 : 12
+                        setFormData({ ...formData, numeroDocumento: normalized.slice(0, maxLength) })
+                      }} maxLength={formData.tipoDocumento === 'DNI' ? 8 : formData.tipoDocumento === 'CE' ? 9 : 12} placeholder={formData.tipoDocumento === 'DNI' ? '8 dígitos' : formData.tipoDocumento === 'CE' ? '9 dígitos' : 'Hasta 12 caracteres'} className={inputClassName} />
                     </div>
                   </div>
                 </section>
 
                 <div className="pt-2">
-                  <Button onClick={handleSaveMascota} className="h-11 w-full rounded-xl bg-[#eb008f] text-white hover:bg-[#c9007a]">
-                    {selectedMascota ? 'Actualizar' : 'Registrar'} mascota
-                  </Button>
+                  <Button onClick={handleSaveMascota} className="h-11 w-full rounded-xl bg-[#eb008f] text-white hover:bg-[#c9007a]">{selectedMascota ? 'Actualizar' : 'Registrar'} mascota</Button>
                 </div>
               </div>
             </DialogContent>
           </Dialog>
+
+          </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Buscar</Label>
+            <div className="flex items-center rounded-xl border border-[#0ebccc]/25 bg-white px-3 shadow-sm">
+              <Search className="h-4 w-4 text-[#0ebccc]" />
+              <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar por mascota, dueño o documento" className="h-11 border-0 bg-transparent px-2 shadow-none focus-visible:ring-0" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Especie</Label>
+            <Select value={filterEspecie} onValueChange={(v) => setFilterEspecie(v)}>
+              <SelectTrigger className="h-11 rounded-xl border-[#0ebccc]/25 bg-white text-left"><SelectValue placeholder="Todas" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                {ESPECIES.map((es) => <SelectItem key={es} value={es}>{es}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="whitespace-nowrap text-sm font-medium text-[#0f2f3a]">Estado</Label>
+            <Select value={filterEstado} onValueChange={(v) => setFilterEstado(v)}>
+              <SelectTrigger className="h-11 rounded-xl border-[#0ebccc]/25 bg-white text-left"><SelectValue placeholder="Todos" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="activo">Activo</SelectItem>
+                <SelectItem value="inactivo">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -314,55 +316,31 @@ export default function Mascotas({ sesion }) {
                 <TableHead>Nombre de la mascota</TableHead>
                 <TableHead>Dueño</TableHead>
                 <TableHead>Especie</TableHead>
-                <TableHead>Estado</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mascotas.length > 0 ? (
-                mascotas.map((mascota) => (
+              {displayedMascotas.length > 0 ? (
+                displayedMascotas.map((mascota) => (
                   <TableRow key={mascota.id}>
                     <TableCell>
                       <Avatar className="h-11 w-11 border border-[#0ebccc]/20">
-                        <AvatarFallback className="bg-gradient-to-br from-[#0ebccc] to-[#eb008f] text-sm font-semibold text-white">
-                          {getInitials(mascota.nombreMascota)}
-                        </AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-br from-[#0ebccc] to-[#eb008f] text-sm font-semibold text-white">{getInitials(mascota.nombreMascota)}</AvatarFallback>
                       </Avatar>
                     </TableCell>
                     <TableCell className="font-medium text-[#0f2f3a]">{mascota.nombreMascota}</TableCell>
                     <TableCell className="text-[#0f2f3a]/80">{mascota.nombreDueno}</TableCell>
                     <TableCell className="text-[#0f2f3a]/80">{mascota.especie}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold capitalize ${getEstadoMascota(mascota.estado)}`}>
-                        {mascota.estado || 'activo'}
-                      </span>
-                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full">
-                            <MoreHorizontal size={16} />
-                          </Button>
+                          <Button variant="ghost" size="sm" className="h-9 w-9 rounded-full"><MoreHorizontal size={16} /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewMascota(mascota)} className="gap-2">
-                            <PawPrint size={14} /> Ver más
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleEditMascota(mascota)} className="gap-2">
-                            <Edit2 size={14} /> Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleToggleEstado(mascota)} className="gap-2">
-                            <PawPrint size={14} /> {mascota.estado === 'activo' ? 'Marcar inactivo' : 'Marcar activo'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => {
-                              setSelectedMascota(mascota)
-                              setOpenDeleteAlert(true)
-                            }}
-                            className="gap-2 text-red-600"
-                          >
-                            <Trash2 size={14} /> Eliminar
-                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleViewMascota(mascota)} className="gap-2"><PawPrint size={14} /> Ver más</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditMascota(mascota)} className="gap-2"><Edit2 size={14} /> Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleEstado(mascota)} className="gap-2"><PawPrint size={14} /> {mascota.estado === 'activo' ? 'Marcar inactivo' : 'Marcar activo'}</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setSelectedMascota(mascota); setOpenDeleteAlert(true); }} className="gap-2 text-red-600"><Trash2 size={14} /> Eliminar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -370,9 +348,7 @@ export default function Mascotas({ sesion }) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-16 text-center text-sm text-[#0f2f3a]/70">
-                    No hay mascotas registradas todavía. Usa el botón Nueva mascota para crear la primera.
-                  </TableCell>
+                  <TableCell colSpan={5} className="py-16 text-center text-sm text-[#0f2f3a]/70">No hay mascotas registradas todavía. Usa el botón Nueva mascota para crear la primera.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -384,9 +360,7 @@ export default function Mascotas({ sesion }) {
         <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl border border-[#0ebccc]/20 bg-white/95 p-6 shadow-[0_30px_90px_rgba(14,188,204,0.16)]">
           <DialogHeader>
             <DialogTitle className="text-2xl text-[#0f2f3a]">Detalle de mascota</DialogTitle>
-            <DialogDescription className="text-[#0f2f3a]/70">
-              Revisa toda la información registrada para esta mascota.
-            </DialogDescription>
+            <DialogDescription className="text-[#0f2f3a]/70">Revisa toda la información registrada para esta mascota.</DialogDescription>
           </DialogHeader>
 
           {selectedMascota && (
@@ -410,18 +384,15 @@ export default function Mascotas({ sesion }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar mascota</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que quieres eliminar a <strong>{selectedMascota?.nombreMascota || ''}</strong>? Esta acción no se puede deshacer.
-            </AlertDialogDescription>
+            <AlertDialogDescription>¿Estás seguro de que quieres eliminar a <strong>{selectedMascota?.nombreMascota || ''}</strong>? Esta acción no se puede deshacer.</AlertDialogDescription>
           </AlertDialogHeader>
           <div className="flex justify-end gap-2">
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteMascota} className="bg-red-600 hover:bg-red-700">
-              Eliminar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteMascota} className="bg-red-600 hover:bg-red-700">Eliminar</AlertDialogAction>
           </div>
         </AlertDialogContent>
       </AlertDialog>
     </div>
   )
 }
+
